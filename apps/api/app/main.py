@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from dotenv import dotenv_values
-env = dotenv_values(".env")
+from dotenv import load_dotenv
+# Load environment variables from .env file
+load_dotenv()
+
 
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",
-    env["WEBDOMAIN"]
+    os.getenv("WEBDOMAIN")
 ]
 app.add_middleware(
     CORSMiddleware,
