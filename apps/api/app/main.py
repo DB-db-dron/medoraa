@@ -335,6 +335,58 @@ async def greet(name: str):
     return {"message": f"How are u, {name}!"}
  
 
+@app.get("/doctors")
+async def get_doctors():
+    """Return a public list of doctors from the database for frontend consumption."""
+    if not supabase:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Supabase not configured")
+    try:
+        res = supabase.table("doctors").select("*").execute()
+        rows = _extract_data(res)
+        return rows
+    except Exception as e:
+        logger.exception("Failed to fetch doctors: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to fetch doctors")
+
+
+@app.get("/bookings")
+async def get_bookings():
+    """Return list of bookings. For dev it returns booking rows from Supabase if available, otherwise sample data."""
+    sample = [
+        {"time": "09:00 AM", "patient": "John Smith", "doctor": "Dr. Sarah Johnson", "type": "Cardiology Consultation", "status": "Confirmed"},
+        {"time": "10:30 AM", "patient": "Emily Davis", "doctor": "Dr. Michael Chen", "type": "Dermatology Checkup", "status": "In Progress"},
+        {"time": "02:00 PM", "patient": "Robert Wilson", "doctor": "Dr. Emily Rodriguez", "type": "Pediatric Consultation", "status": "Waiting"},
+        {"time": "03:30 PM", "patient": "Lisa Thompson", "doctor": "Dr. Sarah Johnson", "type": "Follow-up Visit", "status": "Confirmed"},
+    ]
+
+    if not supabase:
+        return sample
+    try:
+        res = supabase.table("bookings").select("*").order("start_time", {"ascending": True}).execute()
+        rows = _extract_data(res)
+        # Map supabase rows into the frontend-friendly shape if needed
+        mapped = []
+        for r in rows:
+            mapped.append({
+                "time": r.get("start_time") or r.get("time") or "",
+                "patient": r.get("patient_name") or r.get("patient") or "",
+                "doctor": r.get("doctor_name") or r.get("doctor") or "",
+                "type": r.get("type") or r.get("reason") or "",
+                "status": r.get("status") or "",
+            })
+        return mapped
+    except Exception as e:
+        logger.exception("Failed to fetch bookings: %s", e)
+        return sample
+
+
+@app.post("/auth/logout")
+async def logout(response: Response):
+    # Clear the access_token cookie so browser sessions are logged out
+    response.delete_cookie(key="access_token", path="/")
+    return {"status": "ok"}
+ 
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
