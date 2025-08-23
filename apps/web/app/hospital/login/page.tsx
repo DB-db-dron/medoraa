@@ -11,7 +11,7 @@ export default function HospitalLogin() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setMessage('');
@@ -28,8 +28,9 @@ export default function HospitalLogin() {
       } else {
         setMessage('Logged in — cookie set');
       }
-    } catch (err: any) {
-      setMessage(err?.message || 'Network error');
+    } catch (err: unknown) {
+      const e = err as Error;
+      setMessage(e?.message || 'Network error');
     } finally {
       setLoading(false);
     }

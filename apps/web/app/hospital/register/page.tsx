@@ -10,10 +10,31 @@ export default function HospitalRegister() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage('Not implemented yet');
+    setMessage('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hospital/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(data?.detail || data?.error || 'Registration failed');
+      } else {
+        setMessage('Registered successfully — please login');
+        setName(''); setEmail(''); setPassword('');
+      }
+    } catch (err: any) {
+      const e = err as Error;
+      setMessage(e?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

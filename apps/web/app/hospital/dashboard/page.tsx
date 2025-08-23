@@ -4,8 +4,10 @@ import Navbar from '../../../components/Navbar';
 import { useEffect, useState } from 'react';
 import { fetchBookings } from '../../../lib/api';
 
+type Booking = { time: string; patient: string; doctor: string; type: string; status: string };
+
 export default function HospitalDashboard() {
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function HospitalDashboard() {
                   {loading && (
                     <tr><td colSpan={5} className="py-6 text-center text-gray-500">Loading…</td></tr>
                   )}
-                  {!loading && bookings.map((b: any, idx: number) => (
+                  {!loading && bookings.map((b, idx) => (
                     <tr key={idx} className="border-b">
                       <td className="py-3 text-sm text-gray-600">{b.time}</td>
                       <td>{b.patient}</td>

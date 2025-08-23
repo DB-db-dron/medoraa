@@ -2,20 +2,22 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { fetchCurrentUser, logout } from '../lib/api';
+import { fetchSession, logout } from '../lib/api';
+
+type Session = { role: 'patient' | 'hospital'; user: { name?: string; email?: string } };
 
 export default function Navbar() {
-  const [user, setUser] = useState<any | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const u = await fetchCurrentUser();
-        if (mounted) setUser(u);
-      } catch (err) {
-        if (mounted) setUser(null);
+        const s = await fetchSession();
+        if (mounted) setSession(s as Session);
+      } catch (_err) {
+        if (mounted) setSession(null);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -25,7 +27,7 @@ export default function Navbar() {
 
   async function handleLogout() {
     await logout();
-    setUser(null);
+    setSession(null);
   }
 
   return (
@@ -35,10 +37,11 @@ export default function Navbar() {
         <Link href="/patient" className="text-sm underline">Patient</Link>
         <Link href="/hospital" className="text-sm underline">Hospital</Link>
         {!loading && (
-          user ? (
+          session ? (
             <>
-              <span className="text-sm">{user.name}</span>
+              <span className="text-sm">{session.user?.name || session.user?.email}</span>
               <button onClick={handleLogout} className="text-sm underline">Logout</button>
+              {session.role === 'hospital' && <Link href="/hospital/dashboard" className="ml-3 text-sm">Dashboard</Link>}
             </>
           ) : (
             <>
