@@ -10,20 +10,14 @@ export async function fetchCurrentUser() {
 }
 
 export async function fetchSession() {
-  // Try patient session first, then hospital session.
-  try {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/me`, { credentials: 'include' });
-    if (r.ok) return { role: 'patient', user: await r.json() };
-  } catch (err) {
-    // ignore
+  // Unified session endpoint returns { user, role }
+  const r = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, { credentials: 'include' });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => '');
+    throw new Error(`Not authenticated: ${r.status} ${r.statusText} ${txt}`);
   }
-  try {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/hospitals/me`, { credentials: 'include' });
-    if (r.ok) return { role: 'hospital', user: await r.json() };
-  } catch (err) {
-    // ignore
-  }
-  throw new Error('Not authenticated');
+  const data = await r.json();
+  return { role: data.role, user: data.user };
 }
 
 export async function fetchDoctors() {

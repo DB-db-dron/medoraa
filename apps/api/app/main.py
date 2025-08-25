@@ -216,6 +216,40 @@ async def get_current_user(request: Request) -> Dict[str, Any]:
     return {"user": user, "role": role}
 
 
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    """Return the authenticated user and role by decoding the JWT from the cookie or Authorization header."""
+    # reuse get_current_user dependency logic but return 401/404 appropriately
+    # We'll attempt to decode token similarly to get_current_user
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    token = None
+    if auth and auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1].strip()
+    else:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization token")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: Optional[str] = payload.get("sub")
+        role: Optional[str] = payload.get("role")
+        if not user_id or not role:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+
+    try:
+        user = get_user_by_id_and_role(user_id, role)
+    except RuntimeError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DB error")
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.pop("password_hash", None)
+    return {"user": user, "role": role}
+
+
 # --- Routes: Registration / Login ---
 @app.post("/auth/patient/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
 async def register_patient(payload: PatientRegister):
